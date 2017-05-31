@@ -29,7 +29,7 @@ public class AIWaypointNetworkEditor : Editor
             if (network.Waypoints[i] != null)
             {
                 
-                Handles.Label (network.Waypoints[i].position, "Waypoint " + i.ToString (), style);
+                Handles.Label (network.Waypoints[i].position, "Waypoint (" + (i + 1).ToString () +")", style);
             }
         }
 

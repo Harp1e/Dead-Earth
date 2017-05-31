@@ -12,7 +12,9 @@ public class NavAgentExample : MonoBehaviour
     public bool pathPending = false;
     public bool isPathStale = false;
     public NavMeshPathStatus pathStatus = NavMeshPathStatus.PathInvalid;
+    public AnimationCurve jumpCurve = new AnimationCurve ();
 
+    bool handlingOffMeshLink = false;
     NavMeshAgent _navAgent = null;
 
 	void Start () {
@@ -45,7 +47,15 @@ public class NavAgentExample : MonoBehaviour
         isPathStale = _navAgent.isPathStale;
         pathStatus = _navAgent.pathStatus;
 
-        if ((!hasPath && !pathPending) || pathStatus == NavMeshPathStatus.PathInvalid /*|| pathStatus == NavMeshPathStatus.PathPartial*/)
+       if (_navAgent.isOnOffMeshLink && !handlingOffMeshLink)
+        {
+            handlingOffMeshLink = true;
+            StartCoroutine (Jump (1.0f));
+            return;
+        }
+
+//  replace !hasPath with remainingDistance check to overcome offmeshlink bug that invalidates path 1 frame after link
+        if ((_navAgent.remainingDistance <= _navAgent.stoppingDistance && !pathPending) || pathStatus == NavMeshPathStatus.PathInvalid /*|| pathStatus == NavMeshPathStatus.PathPartial*/)
         {
             SetNextDestination (true);
         }
@@ -53,5 +63,23 @@ public class NavAgentExample : MonoBehaviour
         {
             SetNextDestination (false);
         }
+    }
+
+    IEnumerator Jump (float duration)
+    {
+        OffMeshLinkData data = _navAgent.currentOffMeshLinkData;
+        Vector3 startPos = _navAgent.transform.position;
+        Vector3 endPos = data.endPos + (_navAgent.baseOffset * Vector3.up);
+        float time = 0.0f;
+
+        while (time <= duration)
+        {
+            float t = time / duration;
+            _navAgent.transform.position = Vector3.Lerp (startPos, endPos, t) + (jumpCurve.Evaluate(t) * Vector3.up);
+            time += Time.deltaTime;
+            yield return null;
+        }
+        handlingOffMeshLink = false;
+        _navAgent.CompleteOffMeshLink ();
     }
 }
